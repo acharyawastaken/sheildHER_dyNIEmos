@@ -2,12 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { C, FONT } from "../utils/constants";
 
-const ContactsScreen = () => {
-  const contacts = [
-    { name: "Meera Sharma", rel: "Mother", phone: "+91 98765 43210", active: true, color: "#E8354A" },
-    { name: "Rohan Sharma", rel: "Brother", phone: "+91 87654 32109", active: true, color: "#4A8FE8" },
-    { name: "Ankita Mehra", rel: "Friend", phone: "+91 76543 21098", active: false, color: "#19C97D" },
-    { name: "Divya Nair", rel: "Colleague", phone: "+91 65432 10987", active: true, color: "#F5A623" },
+const ContactsScreen = ({ userProfile }) => {
+  const contacts = userProfile?.contacts || [
+    { name: "Contact 1", phone: "Not Set", active: false, color: C.blue },
+    { name: "Contact 2", phone: "Not Set", active: false, color: C.blue },
   ];
 
   return (
@@ -25,17 +23,17 @@ const ContactsScreen = () => {
       <View style={styles.contactsCard}>
         {contacts.map((c, i) => (
           <View key={i} style={[styles.contactRow, i < contacts.length - 1 && styles.borderBottom]}>
-            <View style={[styles.avatar, { backgroundColor: `${c.color}22`, borderColor: `${c.color}44` }]}>
-              <Text style={[styles.avatarText, { color: c.color }]}>{c.name[0]}</Text>
+            <View style={[styles.avatar, { backgroundColor: `${C.blue}22`, borderColor: `${C.blue}44` }]}>
+              <Text style={[styles.avatarText, { color: C.blue }]}>{c.name[0]}</Text>
             </View>
             <View style={styles.info}>
               <Text style={styles.name}>{c.name}</Text>
-              <Text style={styles.rel}>{c.rel} · {c.phone}</Text>
+              <Text style={styles.rel}>{c.phone}</Text>
             </View>
             <View style={styles.status}>
-              <View style={[styles.dot, { backgroundColor: c.active ? C.safe : C.text2 }]} />
-              <Text style={[styles.statusText, { color: c.active ? C.safe : C.text2 }]}>
-                {c.active ? "Active" : "Off"}
+              <View style={[styles.dot, { backgroundColor: userProfile ? C.safe : C.text2 }]} />
+              <Text style={[styles.statusText, { color: userProfile ? C.safe : C.text2 }]}>
+                {userProfile ? "Active" : "Off"}
               </Text>
             </View>
           </View>

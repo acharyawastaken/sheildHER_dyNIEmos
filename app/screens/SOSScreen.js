@@ -10,29 +10,42 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getCurrentLocation } from "../services/locationService";
 import { C, FONT } from "../utils/constants";
 import SOSButton from "../components/SOSButton";
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { WebView } from 'react-native-webview';
+import { StreamingService } from "../services/streamingService";
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const SOSScreen = () => {
+const SOSScreen = ({ userProfile }) => {
   const [triggered, setTriggered] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [streamUrl, setStreamUrl] = useState("");
+  const [permission, requestPermission] = useCameraPermissions();
   const countdownRef = useRef(null);
 
   const handleTriggered = async () => {
     setTriggered(true);
     
+    // Request camera permission for streaming
+    if (!permission || !permission.granted) {
+      await requestPermission();
+    }
+
+    // Start Agora Stream
+    const roomId = StreamingService.generateRoomId();
+    const url = await StreamingService.startStream(roomId);
+    setStreamUrl(url);
+
     // Fetch real location for logging
     const location = await getCurrentLocation();
     const timestamp = new Date().toLocaleString();
-    const riskScore = 28; // This would come from state or service
 
     // Log to CLI (Terminal)
     console.log("-----------------------------------------");
     console.log("🚨 SOS ACTIVATED 🚨");
     console.log(`TIME:      ${timestamp}`);
-    console.log(`LOCATION:  ${location.area}, ${location.city} (${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)})`);
-    console.log(`RISK SCORE: ${riskScore}/100`);
-    console.log("STATUS:    Emergency contacts notified.");
+    console.log(`LOCATION:  ${location.area}, ${location.city}`);
+    console.log(`STREAM:    ${url}`);
     console.log("-----------------------------------------");
 
     let c = 5;
@@ -43,41 +56,86 @@ const SOSScreen = () => {
     }, 1000);
   };
 
-  const cancel = () => {
+  const cancel = async () => {
     setTriggered(false);
     setCountdown(5);
     clearInterval(countdownRef.current);
+    await StreamingService.stopStream();
   };
 
   if (triggered) return (
     <View style={styles.triggeredContainer}>
-      <View style={styles.sosAlertCircle}>
-        <Text style={styles.sosAlertText}>SOS</Text>
-      </View>
-      <Text style={styles.statusTitle}>Alert Sent</Text>
-      <Text style={styles.statusSub}>Notifying emergency contacts…</Text>
-      <Text style={styles.statusDetail}>Live location sharing active</Text>
+      {/* Background Dim */}
+      <View style={styles.overlayBg} />
 
-      <View style={styles.contactsCard}>
-        {["Meera (Mom)", "Rohan (Brother)", "Ankita (Friend)"].map((c, i) => (
-          <View key={i} style={[styles.contactRow, i < 2 && styles.borderBottom]}>
-            <View style={styles.contactInfo}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{c[0]}</Text>
-              </View>
-              <Text style={styles.contactName}>{c}</Text>
+      {/* Safety Dispatch Window (Popup) */}
+      <View style={styles.dispatchWindow}>
+        <View style={styles.dispatchHeader}>
+          <View style={styles.liveIndicator}>
+            <View style={styles.redDot} />
+            <Text style={styles.liveLabel}>ENCRYPTED LIVE FEED</Text>
+          </View>
+          <Text style={styles.dispatchTitle}>SAFETY DISPATCH</Text>
+        </View>
+
+        <View style={styles.cameraFrame}>
+          <CameraView style={styles.camera} facing="back" />
+          <View style={styles.viewersCount}>
+            <Text style={styles.viewersText}>BROADCASTING</Text>
+          </View>
+        </View>
+
+        {/* Live Monitor (The "Other Side") */}
+        <View style={styles.monitorFrame}>
+          <Text style={styles.monitorTitle}>CONTACT VIEW (LIVE MONITOR)</Text>
+          {streamUrl ? (
+            <WebView 
+              source={{ uri: streamUrl }} 
+              style={styles.webview}
+              allowsInlineMediaPlayback={true}
+              mediaPlaybackRequiresUserAction={false}
+            />
+          ) : (
+            <View style={styles.monitorLoading}>
+              <ActivityIndicator color={C.accent} />
             </View>
-            <View style={styles.notifiedBadge}>
-              <View style={styles.greenDot} />
-              <Text style={styles.notifiedText}>Notified</Text>
+          )}
+        </View>
+
+        <View style={styles.dispatchInfo}>
+          <Text style={styles.alertMain}>SOS ACTIVATED</Text>
+          <Text style={styles.alertSub}>Signals sent to Emergency Contacts</Text>
+          
+          <View style={styles.statusList}>
+            <View style={styles.statusItem}>
+              <View style={[styles.statusDot, { backgroundColor: C.safe }]} />
+              <Text style={styles.statusText}>GPS Location Sharing: Active</Text>
+            </View>
+            <View style={styles.statusItem}>
+              <View style={[styles.statusDot, { backgroundColor: C.safe }]} />
+              <Text style={styles.statusText}>Evidence Recording: Started</Text>
             </View>
           </View>
-        ))}
-      </View>
+        </View>
 
-      <TouchableOpacity onPress={cancel} style={styles.cancelButton}>
-        <Text style={styles.cancelButtonText}>Cancel SOS</Text>
-      </TouchableOpacity>
+        <View style={styles.contactsGrid}>
+          {userProfile?.contacts.map((c, i) => (
+            <View key={i} style={styles.miniContactCard}>
+              <View style={styles.avatarMini}>
+                <Text style={styles.avatarTextMini}>{c.name[0]}</Text>
+              </View>
+              <View>
+                <Text style={styles.miniName}>{c.name}</Text>
+                <Text style={styles.miniStatus}>NOTIFIED</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity onPress={cancel} style={styles.deactivateButton}>
+          <Text style={styles.deactivateText}>I AM SAFE (CANCEL SOS)</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -172,115 +230,193 @@ const styles = StyleSheet.create({
   },
   triggeredContainer: {
     flex: 1,
-    backgroundColor: C.bg1,
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
   },
-  sosAlertCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: C.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 10,
+  overlayBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.8)',
   },
-  sosAlertText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 2,
-  },
-  statusTitle: {
-    fontSize: 32,
-    color: C.accent,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  statusSub: {
-    fontSize: 14,
-    color: C.text1,
-    marginBottom: 6,
-  },
-  statusDetail: {
-    fontSize: 13,
-    color: C.text2,
-    marginBottom: 32,
-  },
-  contactsCard: {
-    width: '100%',
+  dispatchWindow: {
+    width: width * 0.9,
     backgroundColor: C.bg2,
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: C.border,
-    paddingHorizontal: 20,
-    marginBottom: 32,
+    overflow: 'hidden',
+    paddingBottom: 24,
   },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-  },
-  borderBottom: {
+  dispatchHeader: {
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: C.bg3,
   },
-  contactInfo: {
+  liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(232,53,74,0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.bg4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    fontSize: 12,
-    color: C.text1,
-  },
-  contactName: {
-    fontSize: 14,
-    color: C.text0,
-  },
-  notifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greenDot: {
+  redDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: C.safe,
+    backgroundColor: C.accent,
     marginRight: 6,
   },
-  notifiedText: {
-    fontSize: 11,
-    color: C.safe,
-    fontWeight: '600',
+  liveLabel: {
+    color: C.accent,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  cancelButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 16,
+  dispatchTitle: {
+    color: C.text2,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  cameraFrame: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#000',
+  },
+  camera: {
+    flex: 1,
+  },
+  viewersCount: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(232,53,74,0.8)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  viewersText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  monitorFrame: {
+    width: '100%',
+    height: 120,
+    backgroundColor: C.bg1,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  monitorTitle: {
+    fontSize: 8,
+    color: C.text2,
+    fontWeight: '800',
+    padding: 8,
+    letterSpacing: 1,
     backgroundColor: C.bg3,
+  },
+  webview: {
+    flex: 1,
+    backgroundColor: '#000',
+    opacity: 0.7,
+  },
+  monitorLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dispatchInfo: {
+    padding: 20,
+  },
+  alertMain: {
+    color: C.accent,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  alertSub: {
+    color: C.text1,
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  statusList: {
+    gap: 8,
+  },
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 10,
+  },
+  statusText: {
+    color: C.text2,
+    fontSize: 12,
+  },
+  contactsGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 24,
+  },
+  miniContactCard: {
+    flex: 1,
+    backgroundColor: C.bg3,
+    borderRadius: 12,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderColor: C.border,
   },
-  cancelButtonText: {
-    fontSize: 14,
-    color: C.text1,
+  avatarMini: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: C.bg4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarTextMini: {
+    color: C.text0,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  miniName: {
+    color: C.text0,
+    fontSize: 11,
     fontWeight: '600',
+  },
+  miniStatus: {
+    color: C.safe,
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  deactivateButton: {
+    marginHorizontal: 20,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: C.bg4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  deactivateText: {
+    color: C.text0,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

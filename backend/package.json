@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "expo-camera": "^55.0.16",
+    "expo-image-picker": "^55.0.19"
+  }
+}

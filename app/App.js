@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Screens
 import LoginScreen from './screens/LoginScreen';
+import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import HomeScreen from './screens/HomeScreen';
 import MapScreen from './screens/MapScreen';
 import SOSScreen from './screens/SOSScreen';
@@ -35,20 +36,55 @@ const TabIcon = ({ name, color, size }) => {
   );
 };
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authState, setAuthState] = useState('loading'); // loading, login, setup, main
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    checkProfile();
+  }, []);
+
+  const checkProfile = async () => {
+    try {
+      const savedProfile = await AsyncStorage.getItem('userProfile');
+      if (savedProfile) {
+        setUserProfile(JSON.parse(savedProfile));
+        setAuthState('main');
+      } else {
+        setAuthState('login');
+      }
+    } catch (e) {
+      setAuthState('login');
+    }
+  };
 
   const handleLogin = () => {
-    // Simulated Google Login success
-    setIsAuthenticated(true);
+    setAuthState('setup');
+  };
+
+  const handleSetupComplete = async (profile) => {
+    try {
+      await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+      setUserProfile(profile);
+      setAuthState('main');
+    } catch (e) {
+      console.error("Error saving profile", e);
+    }
   };
 
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        {!isAuthenticated ? (
-          <LoginScreen onLogin={handleLogin} />
-        ) : (
+        {authState === 'loading' && (
+          <View style={{ flex: 1, backgroundColor: C.bg0, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator color={C.accent} size="large" />
+          </View>
+        )}
+        {authState === 'login' && <LoginScreen onLogin={handleLogin} />}
+        {authState === 'setup' && <ProfileSetupScreen onComplete={handleSetupComplete} />}
+        {authState === 'main' && (
           <Tab.Navigator
             screenOptions={({ route }) => ({
               headerShown: false,
@@ -66,11 +102,21 @@ export default function App() {
               ),
             })}
           >
-            <Tab.Screen name="Home" component={HomeScreen} />
-            <Tab.Screen name="Map" component={MapScreen} />
-            <Tab.Screen name="SOS" component={SOSScreen} />
-            <Tab.Screen name="Contacts" component={ContactsScreen} />
-            <Tab.Screen name="Settings" component={SettingsScreen} />
+            <Tab.Screen name="Home">
+              {props => <HomeScreen {...props} userProfile={userProfile} />}
+            </Tab.Screen>
+            <Tab.Screen name="Map">
+              {props => <MapScreen {...props} userProfile={userProfile} />}
+            </Tab.Screen>
+            <Tab.Screen name="SOS">
+              {props => <SOSScreen {...props} userProfile={userProfile} />}
+            </Tab.Screen>
+            <Tab.Screen name="Contacts">
+              {props => <ContactsScreen {...props} userProfile={userProfile} />}
+            </Tab.Screen>
+            <Tab.Screen name="Settings">
+              {props => <SettingsScreen {...props} userProfile={userProfile} />}
+            </Tab.Screen>
           </Tab.Navigator>
         )}
       </NavigationContainer>

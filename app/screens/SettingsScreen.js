@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
 import { C, FONT } from "../utils/constants";
 
-const SettingsScreen = () => {
+const SettingsScreen = ({ userProfile }) => {
   const [vals, setVals] = useState({ guardian: true, noise: false, gesture: true, checkin: true, share: false });
   const toggle = k => setVals(v => ({ ...v, [k]: !v[k] }));
+
+  const name = userProfile?.name || "Guest User";
+  const phone = userProfile?.phone || "+91 00000 00000";
 
   const sections = [
     {
@@ -34,11 +37,11 @@ const SettingsScreen = () => {
       {/* Profile card */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>P</Text>
+          <Text style={styles.avatarText}>{name.charAt(0)}</Text>
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>Priya Sharma</Text>
-          <Text style={styles.profilePhone}>+91 98123 45678</Text>
+          <Text style={styles.profileName}>{name}</Text>
+          <Text style={styles.profilePhone}>{phone}</Text>
         </View>
         <TouchableOpacity>
           <Text style={styles.editText}>Edit</Text>
