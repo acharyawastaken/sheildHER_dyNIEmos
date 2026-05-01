@@ -1,0 +1,42 @@
+{
+  "model_type": "XGBRegressor",
+  "trained_at": "2026-05-01T08:45:15.350343",
+  "feature_columns": [
+    "crime_rate",
+    "lighting_score",
+    "police_distance_km",
+    "hospital_distance_km",
+    "road_type",
+    "crowd_density",
+    "cctv_count",
+    "transport_access",
+    "urban_density"
+  ],
+  "metrics": {
+    "mae": 0.4052063430213928,
+    "rmse": 0.5066747025215811,
+    "r2": 0.7847839785637487,
+    "feature_importance": {
+      "crime_rate": 0.31232407689094543,
+      "lighting_score": 0.07829898595809937,
+      "police_distance_km": 0.04823337867856026,
+      "hospital_distance_km": 0.014932174235582352,
+      "road_type": 0.021738210693001747,
+      "crowd_density": 0.00957559049129486,
+      "cctv_count": 0.008656262420117855,
+      "transport_access": 0.008397189900279045,
+      "urban_density": 0.4978440999984741
+    }
+  },
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "min_child_weight": 3,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42
+  },
+  "description": "Area Safety Classifier \u2014 predicts safety score (0-10) from location features",
+  "explainability": "Feature importance + SHAP values available"
+}

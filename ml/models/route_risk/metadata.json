@@ -1,0 +1,37 @@
+{
+  "model_type": "Ridge Regression Pipeline",
+  "trained_at": "2026-05-01T08:45:20.625929",
+  "feature_columns": [
+    "route_length_km",
+    "n_segments",
+    "avg_safety_score",
+    "min_safety_score",
+    "dark_segments",
+    "police_coverage",
+    "arterial_fraction",
+    "cctv_coverage",
+    "hour",
+    "is_night",
+    "is_weekend"
+  ],
+  "metrics": {
+    "mae": 4.100059072722192,
+    "rmse": 5.1000374402534465,
+    "r2": 0.9065686206012824,
+    "coefficients": {
+      "route_length_km": 0.06539491120081392,
+      "n_segments": -0.0712224993281357,
+      "avg_safety_score": -12.224998289184466,
+      "min_safety_score": 0.1589661506225605,
+      "dark_segments": 5.547204327810513,
+      "police_coverage": -4.328924609582705,
+      "arterial_fraction": -2.8575147032093207,
+      "cctv_coverage": -2.3987084550922715,
+      "hour": -0.05341967794012322,
+      "is_night": 7.4575713232413126,
+      "is_weekend": 0.030501776555706357
+    }
+  },
+  "description": "Route Risk Scorer \u2014 predicts route risk (0-100) from aggregated safety features",
+  "explainability": "Linear coefficients show direct feature contribution to risk"
+}
