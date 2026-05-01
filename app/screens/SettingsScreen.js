@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
 import { C, FONT } from "../utils/constants";
 
-const SettingsScreen = ({ userProfile }) => {
+const SettingsScreen = ({ userProfile, onEditProfile }) => {
   const [vals, setVals] = useState({ guardian: true, noise: false, gesture: true, checkin: true, share: false });
   const toggle = k => setVals(v => ({ ...v, [k]: !v[k] }));
 
@@ -43,7 +43,7 @@ const SettingsScreen = ({ userProfile }) => {
           <Text style={styles.profileName}>{name}</Text>
           <Text style={styles.profilePhone}>{phone}</Text>
         </View>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onEditProfile}>
           <Text style={styles.editText}>Edit</Text>
         </TouchableOpacity>
       </View>

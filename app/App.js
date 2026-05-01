@@ -13,6 +13,8 @@ import MapScreen from './screens/MapScreen';
 import SOSScreen from './screens/SOSScreen';
 import ContactsScreen from './screens/ContactsScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import { GuardianService } from './services/guardianService';
+import { Alert } from 'react-native';
 
 // Constants
 import { C } from './utils/constants';
@@ -46,6 +48,24 @@ export default function App() {
     checkProfile();
   }, []);
 
+  useEffect(() => {
+    if (authState === 'main') {
+      GuardianService.startMonitoring((force) => {
+        Alert.alert(
+          "🚨 Guardian AI: Anomaly Detected",
+          "We detected a high-impact event (sudden jerk or fall). Would you like to trigger an SOS?",
+          [
+            { text: "I'm Safe", style: "cancel" },
+            { text: "TRIGGER SOS", onPress: () => console.log("SOS TRIGGERED BY AI") }
+          ]
+        );
+      });
+    } else {
+      GuardianService.stopMonitoring();
+    }
+    return () => GuardianService.stopMonitoring();
+  }, [authState]);
+
   const checkProfile = async () => {
     try {
       const savedProfile = await AsyncStorage.getItem('userProfile');
@@ -61,6 +81,10 @@ export default function App() {
   };
 
   const handleLogin = () => {
+    setAuthState('setup');
+  };
+
+  const handleEditProfile = () => {
     setAuthState('setup');
   };
 
@@ -115,7 +139,7 @@ export default function App() {
               {props => <ContactsScreen {...props} userProfile={userProfile} />}
             </Tab.Screen>
             <Tab.Screen name="Settings">
-              {props => <SettingsScreen {...props} userProfile={userProfile} />}
+              {props => <SettingsScreen {...props} userProfile={userProfile} onEditProfile={handleEditProfile} />}
             </Tab.Screen>
           </Tab.Navigator>
         )}

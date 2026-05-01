@@ -13,11 +13,13 @@ import SOSButton from "../components/SOSButton";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { WebView } from 'react-native-webview';
 import { StreamingService } from "../services/streamingService";
+import FakeCallScreen from "./FakeCallScreen";
 
 const { width, height } = Dimensions.get('window');
 
 const SOSScreen = ({ userProfile }) => {
   const [triggered, setTriggered] = useState(false);
+  const [fakeCallActive, setFakeCallActive] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [streamUrl, setStreamUrl] = useState("");
   const [permission, requestPermission] = useCameraPermissions();
@@ -62,6 +64,8 @@ const SOSScreen = ({ userProfile }) => {
     clearInterval(countdownRef.current);
     await StreamingService.stopStream();
   };
+
+  if (fakeCallActive) return <FakeCallScreen onEnd={() => setFakeCallActive(false)} />;
 
   if (triggered) return (
     <View style={styles.triggeredContainer}>
@@ -153,12 +157,12 @@ const SOSScreen = ({ userProfile }) => {
 
       <View style={styles.actionsGrid}>
         {[
-          { icon: "📞", label: "Fake call", sub: "Simulate incoming" },
+          { icon: "📞", label: "Fake call", sub: "Simulate incoming", action: () => setFakeCallActive(true) },
           { icon: "🔇", label: "Silent alert", sub: "Notify only" },
           { icon: "📍", label: "Share location", sub: "To all contacts" },
           { icon: "🎙", label: "Record audio", sub: "Capture sound" },
-        ].map(({ icon, label, sub }, i) => (
-          <TouchableOpacity key={i} style={styles.actionItem}>
+        ].map(({ icon, label, sub, action }, i) => (
+          <TouchableOpacity key={i} style={styles.actionItem} onPress={action}>
             <Text style={styles.actionIcon}>{icon}</Text>
             <Text style={styles.actionLabel}>{label}</Text>
             <Text style={styles.actionSub}>{sub}</Text>

@@ -18,14 +18,18 @@ import { getRiskDimColor } from "../utils/helpers";
 import RiskIndicator from "../components/RiskIndicator";
 import { getLiveSignals } from "../services/locationService";
 
+import { Alert } from "react-native";
+
 const { width } = Dimensions.get('window');
 
-const HomeScreen = () => {
+const HomeScreen = ({ userProfile }) => {
   const [risk, setRisk] = useState(28);
   const [time, setTime] = useState(new Date());
   const [tracking, setTracking] = useState(true);
   const [signals, setSignals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 mins
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -42,6 +46,19 @@ const HomeScreen = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let interval;
+    if (timerActive && timeLeft > 0) {
+      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft === 0 && timerActive) {
+      setTimerActive(false);
+      Alert.alert("🚨 CHECK-IN EXPIRED", "Safety check-in failed. Triggering SOS sequence...");
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timeLeft]);
+
+  const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+
   const fetchSignals = async () => {
     const s = await getLiveSignals();
     setSignals(s);
@@ -57,7 +74,7 @@ const HomeScreen = () => {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>GOOD EVENING</Text>
-            <Text style={styles.userName}>Priya</Text>
+            <Text style={styles.userName}>{userProfile?.name || "Guest"}</Text>
           </View>
           <TouchableOpacity style={styles.notifButton}>
             <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.text1} strokeWidth="1.7" strokeLinecap="round">
@@ -71,6 +88,29 @@ const HomeScreen = () => {
         <View style={styles.riskContainer}>
           <View style={[styles.glow, { backgroundColor: getRiskDimColor(risk) }]} />
           <RiskIndicator score={risk} />
+        </View>
+
+        {/* Safety Timer Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>SAFETY CHECK-IN</Text>
+            <Switch 
+              value={timerActive} 
+              onValueChange={setTimerActive}
+              trackColor={{ false: C.bg4, true: C.safe }}
+              thumbColor="#fff"
+            />
+          </View>
+          <TouchableOpacity 
+            style={[styles.timerCard, timerActive && { borderColor: C.safe, backgroundColor: C.safeDim }]}
+            onPress={() => setTimerActive(!timerActive)}
+          >
+            <View style={styles.timerInfo}>
+              <Text style={styles.timerLabel}>{timerActive ? "Monitoring Active" : "Check-in Timer Off"}</Text>
+              <Text style={styles.timerSub}>Auto-SOS if not checked in by zero</Text>
+            </View>
+            <Text style={[styles.timerDisplay, timerActive && { color: C.safe }]}>{formatTime(timeLeft)}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Signals Section */}
@@ -165,14 +205,47 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 11,
     color: C.text2,
     letterSpacing: 1.5,
+    fontWeight: '700',
+  },
+  timerCard: {
+    backgroundColor: C.bg2,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timerInfo: {
+    flex: 1,
+  },
+  timerLabel: {
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 12,
+    color: C.text0,
+    marginBottom: 2,
+  },
+  timerSub: {
+    fontSize: 11,
+    color: C.text2,
+  },
+  timerDisplay: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: C.text2,
   },
   signalsCard: {
     backgroundColor: C.bg2,

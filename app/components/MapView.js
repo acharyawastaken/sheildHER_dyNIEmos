@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { C } from "../utils/constants";
+import { RouteService } from "../services/routeService";
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,8 +57,20 @@ const RealMapView = ({ activeRoute = "safe" }) => {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
+        {/* Render Risk Zones */}
+        {RouteService.DANGER_ZONES.map(zone => (
+          <Circle
+            key={zone.id}
+            center={{ latitude: zone.lat, longitude: zone.lng }}
+            radius={zone.radius}
+            fillColor={zone.risk === 'High' ? 'rgba(232,53,74,0.15)' : 'rgba(245,166,35,0.15)'}
+            strokeColor={zone.risk === 'High' ? C.accent : C.warn}
+            strokeWidth={1}
+          />
+        ))}
+
         {location && (
-          <Marker 
+          <Marker
             coordinate={{
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
