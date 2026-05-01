@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, Polyline, Heatmap } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { C } from "../utils/constants";
 import { RouteService } from "../services/routeService";
@@ -10,7 +10,7 @@ const { width, height } = Dimensions.get('window');
 /**
  * RealMapView — Interactive Maps integration.
  */
-const RealMapView = ({ activeRoute = "safe" }) => {
+const RealMapView = ({ activeRouteId = "safe", routes = [] }) => {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,16 +57,45 @@ const RealMapView = ({ activeRoute = "safe" }) => {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
-        {/* Render Risk Zones */}
-        {RouteService.DANGER_ZONES.map(zone => (
-          <Circle
-            key={zone.id}
-            center={{ latitude: zone.lat, longitude: zone.lng }}
-            radius={zone.radius}
-            fillColor={zone.risk === 'High' ? 'rgba(232,53,74,0.15)' : 'rgba(245,166,35,0.15)'}
-            strokeColor={zone.risk === 'High' ? C.accent : C.warn}
-            strokeWidth={1}
+        {/* Risk Heatmap (Weather Radar Style) */}
+        <Heatmap
+          points={RouteService.DANGER_ZONES.map(z => ({
+            latitude: z.lat,
+            longitude: z.lng,
+            weight: z.risk === 'High' ? 10 : 5
+          }))}
+          radius={50}
+          opacity={0.7}
+          gradient={{
+            colors: ['#19C97D', '#F5A623', '#E8354A'],
+            startPoints: [0.2, 0.5, 0.8],
+            colorMapSize: 256,
+          }}
+        />
+
+        {/* Render Route Paths */}
+        {routes.map(r => (
+          <Polyline
+            key={r.id}
+            coordinates={r.polyline}
+            strokeColor={r.id === activeRouteId ? r.color : 'rgba(142,142,147,0.3)'}
+            strokeWidth={r.id === activeRouteId ? 6 : 3}
+            zIndex={r.id === activeRouteId ? 10 : 1}
+            lineDashPattern={r.style === 'dashed' ? [10, 5] : null}
           />
+        ))}
+
+        {/* Destination Markers with Time Labels */}
+        {routes.map(r => (
+          <Marker
+            key={`marker-${r.id}`}
+            coordinate={r.polyline[r.polyline.length - 1]}
+            opacity={r.id === activeRouteId ? 1 : 0.5}
+          >
+            <View style={[styles.markerLabel, { backgroundColor: r.color }]}>
+              <Text style={styles.markerText}>{r.est}</Text>
+            </View>
+          </Marker>
         ))}
 
         {location && (
@@ -114,8 +143,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#080B10',
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: width,
+    height: height,
+  },
+  markerLabel: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  markerText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
   },
   legend: {
     position: 'absolute',

@@ -1,18 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import { C } from '../utils/constants';
 
 const { width, height } = Dimensions.get('window');
 
 const FakeCallScreen = ({ onEnd }) => {
   const [timer, setTimer] = useState(0);
+  const soundRef = useRef(null);
+
+  async function playSound() {
+    try {
+      console.log('🧠 [AUDIO] Initializing Fake Call Audio...');
+      const { sound } = await Audio.Sound.createAsync(
+         require('../assets/fake_call.mp3'),
+         { shouldPlay: true, isLooping: true }
+      );
+      soundRef.current = sound;
+      await sound.playAsync();
+    } catch (error) {
+      console.error("❌ [AUDIO] Failed to play sound:", error);
+    }
+  }
 
   useEffect(() => {
+    playSound();
     const interval = setInterval(() => {
       setTimer(prev => prev + 1);
     }, 1000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      if (soundRef.current) {
+        console.log('🧠 [AUDIO] Terminating playback...');
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    };
   }, []);
 
   const formatTime = (seconds) => {

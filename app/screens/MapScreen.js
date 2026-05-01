@@ -17,7 +17,7 @@ const MapScreen = () => {
       const start = { lat: loc.coords.latitude, lng: loc.coords.longitude };
       // Simulated destination coord based on search string or default
       const end = { lat: loc.coords.latitude + 0.012, lng: loc.coords.longitude + 0.008 };
-      
+
       const path = RouteService.findPath(start, end, mode);
       setRouteData(path);
       setRoute(mode);
@@ -35,10 +35,10 @@ const MapScreen = () => {
         <View style={styles.inputCard}>
           <View style={styles.searchRow}>
             <View style={[styles.dot, { backgroundColor: C.blue }]} />
-            <TextInput 
-              style={styles.input} 
-              placeholder="Source" 
-              value={source} 
+            <TextInput
+              style={styles.input}
+              placeholder="Source"
+              value={source}
               onChangeText={setSource}
               placeholderTextColor={C.text2}
             />
@@ -46,10 +46,10 @@ const MapScreen = () => {
           <View style={styles.divider} />
           <View style={styles.searchRow}>
             <View style={[styles.dot, { backgroundColor: C.accent }]} />
-            <TextInput 
-              style={styles.input} 
-              placeholder="Where to?" 
-              value={destination} 
+            <TextInput
+              style={styles.input}
+              placeholder="Where to?"
+              value={destination}
               onChangeText={setDestination}
               placeholderTextColor={C.text2}
               autoFocus
@@ -69,14 +69,14 @@ const MapScreen = () => {
             <Text style={styles.safetyText}>AI Verified</Text>
           </View>
         </View>
-        
+
         <View style={styles.routeOptions}>
           {[
             { id: "safe", label: "Safer", sub: routeData?.duration || "14 min", color: C.safe, icon: "🛡" },
             { id: "fast", label: "Fastest", sub: routeData?.duration || "8 min", color: C.accent, icon: "⚡" },
           ].map(({ id, label, sub, color, icon }) => (
-            <TouchableOpacity 
-              key={id} 
+            <TouchableOpacity
+              key={id}
               onPress={() => calculateRoute(id)}
               style={[
                 styles.routeBtn,

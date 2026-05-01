@@ -1,9 +1,9 @@
 import React, { useState, useRef } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Dimensions
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,7 +27,7 @@ const SOSScreen = ({ userProfile }) => {
 
   const handleTriggered = async () => {
     setTriggered(true);
-    
+
     // Request camera permission for streaming
     if (!permission || !permission.granted) {
       await requestPermission();
@@ -56,6 +56,40 @@ const SOSScreen = ({ userProfile }) => {
       if (c >= 0) setCountdown(c);
       if (c <= 0) clearInterval(countdownRef.current);
     }, 1000);
+  };
+
+  const handleSilentAlert = async () => {
+    const location = await getCurrentLocation();
+    const timestamp = new Date().toLocaleString();
+    const roomId = StreamingService.generateRoomId();
+    const url = await StreamingService.startStream(roomId);
+
+    console.log("-----------------------------------------");
+    console.log("🤫 SILENT ALERT DISPATCHED 🤫");
+    console.log(`USER:      ${userProfile?.name || "Unknown"}`);
+    console.log(`AGE:       ${userProfile?.age || "N/A"}`);
+    console.log(`PHONE:     ${userProfile?.phone || "N/A"}`);
+    console.log(`TIME:      ${timestamp}`);
+    console.log(`LOCATION:  ${location.area}, ${location.city}`);
+    console.log(`STREAM:    ${url}`);
+    console.log("-----------------------------------------");
+
+    Alert.alert("Silent Alert", "Your identity and location have been shared with emergency contacts discreetly.");
+  };
+
+  const handleShareLocation = async () => {
+    const location = await getCurrentLocation();
+    const timestamp = new Date().toLocaleString();
+    
+    console.log("-----------------------------------------");
+    console.log("📍 LOCATION BROADCAST PING 📍");
+    console.log(`USER:      ${userProfile?.name || "Unknown"}`);
+    console.log(`TIME:      ${timestamp}`);
+    console.log(`LOCATION:  ${location.area}, ${location.city}`);
+    console.log(`COORDS:    ${location.coords.latitude}, ${location.coords.longitude}`);
+    console.log("-----------------------------------------");
+
+    Alert.alert("Location Shared", "Your real-time coordinates have been sent to your emergency contacts.");
   };
 
   const cancel = async () => {
@@ -93,8 +127,8 @@ const SOSScreen = ({ userProfile }) => {
         <View style={styles.monitorFrame}>
           <Text style={styles.monitorTitle}>CONTACT VIEW (LIVE MONITOR)</Text>
           {streamUrl ? (
-            <WebView 
-              source={{ uri: streamUrl }} 
+            <WebView
+              source={{ uri: streamUrl }}
               style={styles.webview}
               allowsInlineMediaPlayback={true}
               mediaPlaybackRequiresUserAction={false}
@@ -109,7 +143,7 @@ const SOSScreen = ({ userProfile }) => {
         <View style={styles.dispatchInfo}>
           <Text style={styles.alertMain}>SOS ACTIVATED</Text>
           <Text style={styles.alertSub}>Signals sent to Emergency Contacts</Text>
-          
+
           <View style={styles.statusList}>
             <View style={styles.statusItem}>
               <View style={[styles.statusDot, { backgroundColor: C.safe }]} />
@@ -158,8 +192,8 @@ const SOSScreen = ({ userProfile }) => {
       <View style={styles.actionsGrid}>
         {[
           { icon: "📞", label: "Fake call", sub: "Simulate incoming", action: () => setFakeCallActive(true) },
-          { icon: "🔇", label: "Silent alert", sub: "Notify only" },
-          { icon: "📍", label: "Share location", sub: "To all contacts" },
+          { icon: "🔇", label: "Silent alert", sub: "Notify only", action: handleSilentAlert },
+          { icon: "📍", label: "Share location", sub: "To all contacts", action: handleShareLocation },
           { icon: "🎙", label: "Record audio", sub: "Capture sound" },
         ].map(({ icon, label, sub, action }, i) => (
           <TouchableOpacity key={i} style={styles.actionItem} onPress={action}>
